@@ -3,91 +3,232 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Distance and Directions</title>
+    <title>Live Coding Platform</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/dracula.min.css">
     <style>
         body {
-    font-family: Arial, sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    margin: 0;
-}
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display:flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            background-color: #f0f0f0;
+            width:100%;
+        }
 
-.container {
-    text-align: center;
-}
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
 
-.form-group {
-    margin-bottom: 20px;
-}
+        header {
+            background: #333;
+            color: #fff;
+            padding: 16px;
+            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
-#map {
-    height: 400px;
-    width: 100%;
-    margin-top: 20px;
-}
+        .editor-container, .output-container {
+            padding: 16px;
+        }
 
-#output {
-    margin-top: 20px;
-}
+        .CodeMirror {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            height: 300px;
+        }
+
+        #runCode {
+            background: #28a745;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 16px;
+        }
+
+        #runCode:hover {
+            background: #218838;
+        }
+
+        #outputFrame {
+            width: 100%;
+            height: 300px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            animation: fadeIn 0.5s;
+        }
+
+        #themeToggle {
+            background: #007bff;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        #themeToggle:hover {
+            background: #0056b3;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
 
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Find Distance and Directions</h1>
-        <div class="form-group">
-            <input type="text" id="start" placeholder="Enter starting location">
-            <input type="text" id="end" placeholder="Enter destination">
-            <button onclick="calculateRoute()">Find Route</button>
+        <header>
+            <h1>Live Coding Platform</h1>
+            <button id="themeToggle">Change Theme</button>
+        </header>
+        <div class="editor-container">
+            <select id="languageSelect">
+                <option value="select">Select language</option>
+                <option value="javascript">JavaScript</option>
+                <option value="python">Python</option>
+                <option value="cpp">C++</option>
+                <option value="go">Go</option>
+                <option value="sql">SQL</option>
+                <option value="php">PHP</option>
+                <option value="r">R</option>
+                <option value="swift">Swift</option>
+                <option value="typescript">TypeScript</option>
+                <option value="css">CSS</option>
+                <option value="rust">Rust</option>
+                <option value="csharp">C#</option>
+                <option value="ruby">Ruby</option>
+                <option value="kotlin">Kotlin</option>
+                <option value="bash">Bash</option>
+                <option value="scala">Scala</option>
+                <option value="perl">Perl</option>
+            </select>
+            <textarea id="codeEditor" placeholder="Write your code here..."></textarea>
+            <button id="runCode">Run Code</button>
+            <button id="saveCode">Save Code</button>
         </div>
-        <div id="map"></div>
-        <div id="output"></div>
+        <div class="output-container">
+            <iframe id="outputFrame"></iframe>
+        </div>
     </div>
-    <script >
-        let map, directionsService, directionsRenderer;
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/addon/edit/closetag.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/addon/hint/show-hint.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/addon/hint/show-hint.min.css">
+    <script>
+        // Initialize CodeMirror editor
+        let codeEditor = CodeMirror.fromTextArea(document.getElementById('codeEditor'), {
+            mode: 'javascript',
+            theme: 'default',
+            lineNumbers: true,
+            extraKeys: { "Ctrl-Space": "autocomplete" },
+            gutters: ["CodeMirror-lint-markers"],
+            lint: true,
+            matchBrackets: true,
+            autoCloseBrackets: true,
+            showHint: true
+        });
 
-function initMap() {
-    directionsService = new google.maps.DirectionsService();
-    directionsRenderer = new google.maps.DirectionsRenderer();
+        // Update CodeMirror mode based on selected language
+        document.getElementById('languageSelect').addEventListener('change', (e) => {
+            const language = e.target.value;
+            const mode = getMode(language);
+            codeEditor.setOption('mode', mode);
+        });
 
-    map = new google.maps.Map(document.getElementById('map'), {
-        center: { lat: -34.397, lng: 150.644 },
-        zoom: 8
-    });
+        // Run Code button event listener
+        document.getElementById('runCode').addEventListener('click', () => {
+            const code = codeEditor.getValue();
+            const iframe = document.getElementById('outputFrame');
+            iframe.srcdoc = code;
+        });
 
-    directionsRenderer.setMap(map);
-}
+        // Theme Toggle button event listener
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            const currentTheme = codeEditor.getOption('theme');
+            const newTheme = currentTheme === 'default' ? 'dracula' : 'default';
+            codeEditor.setOption('theme', newTheme);
+        });
 
-function calculateRoute() {
-    const start = document.getElementById('start').value;
-    const end = document.getElementById('end').value;
+        // Save Code button event listener
+        document.getElementById('saveCode').addEventListener('click', () => {
+            const code = codeEditor.getValue();
+            localStorage.setItem('savedCode', code); // Save code to localStorage
+            alert('Code saved successfully!');
+        });
 
-    if (start === '' || end === '') {
-        alert('Please fill out both fields');
-        return;
-    }
-
-    const request = {
-        origin: start,
-        destination: end,
-        travelMode: 'DRIVING'
-    };
-
-    directionsService.route(request, function(result, status) {
-        if (status == 'OK') {
-            directionsRenderer.setDirections(result);
-            const distance = result.routes[0].legs[0].distance.text;
-            const duration = result.routes[0].legs[0].duration.text;
-            document.getElementById('output').innerHTML = `Distance: ${distance} <br> Duration: ${duration}`;
-        } else {
-            alert('Could not calculate route: ' + status);
+        // Function to map language to CodeMirror mode
+        function getMode(language) {
+            switch (language) {
+                case 'javascript':
+                case 'typescript':
+                    return 'javascript';
+                case 'python':
+                    return 'python';
+                case 'cpp':
+                    return 'text/x-c++src';
+                case 'go':
+                    return 'go';
+                case 'sql':
+                    return 'sql';
+                case 'php':
+                    return 'application/x-httpd-php';
+                case 'r':
+                    return 'r';
+                case 'swift':
+                    return 'swift';
+                case 'css':
+                    return 'css';
+                case 'rust':
+                    return 'rust';
+                case 'csharp':
+                    return 'text/x-csharp';
+                case 'ruby':
+                    return 'ruby';
+                case 'kotlin':
+                    return 'kotlin';
+                case 'bash':
+                    return 'shell';
+                case 'scala':
+                    return 'text/x-scala';
+                case 'perl':
+                    return 'perl';
+                default:
+                    return 'javascript'; // Default to JavaScript mode
+            }
         }
-    });
-}
-
     </script>
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAw0-lR5uGvmvnRdriWxjnxC9GD12NPXuo&libraries=places&callback=initMap"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/clike/clike.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/go/go.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/sql/sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/php/php.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/r/r.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/swift/swift.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/rust/rust.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/clike/clike.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/ruby/ruby.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/kotlin/kotlin.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/shell/shell.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/scala/scala.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/perl/perl.min.js"></script>
 </body>
 </html>
