@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distance and Directions</title>
+    <style>
+        body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+.container {
+    text-align: center;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+#map {
+    height: 400px;
+    width: 100%;
+    margin-top: 20px;
+}
+
+#output {
+    margin-top: 20px;
+}
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Find Distance and Directions</h1>
+        <div class="form-group">
+            <input type="text" id="start" placeholder="Enter starting location">
+            <input type="text" id="end" placeholder="Enter destination">
+            <button onclick="calculateRoute()">Find Route</button>
+        </div>
+        <div id="map"></div>
+        <div id="output"></div>
+    </div>
+    <script >
+        let map, directionsService, directionsRenderer;
+
+function initMap() {
+    directionsService = new google.maps.DirectionsService();
+    directionsRenderer = new google.maps.DirectionsRenderer();
+
+    map = new google.maps.Map(document.getElementById('map'), {
+        center: { lat: -34.397, lng: 150.644 },
+        zoom: 8
+    });
+
+    directionsRenderer.setMap(map);
+}
+
+function calculateRoute() {
+    const start = document.getElementById('start').value;
+    const end = document.getElementById('end').value;
+
+    if (start === '' || end === '') {
+        alert('Please fill out both fields');
+        return;
+    }
+
+    const request = {
+        origin: start,
+        destination: end,
+        travelMode: 'DRIVING'
+    };
+
+    directionsService.route(request, function(result, status) {
+        if (status == 'OK') {
+            directionsRenderer.setDirections(result);
+            const distance = result.routes[0].legs[0].distance.text;
+            const duration = result.routes[0].legs[0].duration.text;
+            document.getElementById('output').innerHTML = `Distance: ${distance} <br> Duration: ${duration}`;
+        } else {
+            alert('Could not calculate route: ' + status);
+        }
+    });
+}
+
+    </script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAw0-lR5uGvmvnRdriWxjnxC9GD12NPXuo&libraries=places&callback=initMap"></script>
+</body>
+</html>
